@@ -1,0 +1,181 @@
+info:
+  contact: {}
+  license: {}
+paths:
+  /api/album/image/v1/:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: create image
+      parameters:
+      - description: album name
+        in: formData
+        name: album
+        required: true
+        type: string
+      - description: image file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Image uploaded successfully
+          schema:
+            type: string
+        "400":
+          description: Album name is required
+          schema:
+            type: string
+        "500":
+          description: Failed to upload image
+          schema:
+            type: string
+      summary: creates an image
+  /api/album/image/v1/{album}/{image}:
+    delete:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: delete image
+      parameters:
+      - description: album name
+        in: path
+        name: album
+        required: true
+        type: string
+      - description: image name
+        in: path
+        name: image
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Image deleted successfully
+          schema:
+            type: string
+        "400":
+          description: Image name is required
+          schema:
+            type: string
+        "500":
+          description: Image not found
+          schema:
+            type: string
+      summary: deletes an image
+  /api/album/image/v1/{album}{image}:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: get image
+      parameters:
+      - description: album name
+        in: path
+        name: album
+        required: true
+        type: string
+      - description: image name
+        in: path
+        name: image
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Image
+          schema:
+            type: file
+        "400":
+          description: Image name is required
+          schema:
+            type: string
+        "500":
+          description: Image not found
+          schema:
+            type: string
+      summary: returns an image
+  /api/album/v1:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: create album
+      parameters:
+      - description: album name
+        in: formData
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Album created successfully
+          schema:
+            type: string
+        "400":
+          description: Album name is required
+          schema:
+            type: string
+        "500":
+          description: Failed to create album
+          schema:
+            type: string
+      summary: creates a new album
+  /api/album/v1/{album}:
+    delete:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: delete album
+      parameters:
+      - description: album name
+        in: path
+        name: album
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Album deleted successfully
+          schema:
+            type: string
+        "400":
+          description: Album name is required
+          schema:
+            type: string
+        "500":
+          description: Failed to delete album
+          schema:
+            type: string
+      summary: deletes an album
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: get images
+      parameters:
+      - description: album name
+        in: path
+        name: album
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '[{"name":"", "url":""}]'
+          schema:
+            type: array
+        "400":
+          description: Album name is required
+          schema:
+            type: string
+        "500":
+          description: Failed to get images
+          schema:
+            type: string
+      summary: returns images in an album
+swagger: "2.0"
