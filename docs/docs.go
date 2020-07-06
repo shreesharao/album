@@ -172,7 +172,7 @@ var doc = `{
                             "$ref": "#/definitions/handler.Error"
                         }
                     },
-                    "500": {
+                    "404": {
                         "description": "Image not found",
                         "schema": {
                             "$ref": "#/definitions/handler.Error"

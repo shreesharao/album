@@ -341,7 +341,7 @@ func (h *RequestHandler) GetImages(ctx iris.Context) {
 // @Success 200 {file} file "Image File"
 // @Failure 400 {object} Error "Album name is required"
 // @Failure 400 {object} Error "Image name is required"
-// @Failure 500 {object} Error "Image not found"
+// @Failure 404 {object} Error "Image not found"
 // @Router /api/album/image/v1/{album}{image} [get]
 func (h *RequestHandler) GetImage(ctx iris.Context) {
 	albumName := ctx.Params().Get("album")
