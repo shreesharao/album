@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -36,27 +37,44 @@ const (
 // @Accept  application/x-www-form-urlencoded
 // @Produce  json
 // @Param  name formData string true "album name"
-// @Success 200 {string} string "Album created successfully"
-// @Failure 400 {string} string "Album name is required"
-// @Failure 500 {string} string "Failed to create album"
+// @Success 201 {object} Create "Album created successfully"
+// @Failure 400 {object} Error "Album name is required"
+// @Failure 400 {object} Error "Album is present already"
+// @Failure 500 {object} Error "Failed to create album"
 // @Router /api/album/v1 [post]
 func (h *RequestHandler) CreateAlbum(ctx iris.Context) {
 	albumName := ctx.FormValue("name")
 
 	if albumName == "" {
 		ctx.StatusCode(iris.StatusBadRequest)
-		ctx.JSON(iris.Map{"msg": "Album name is required"})
+		resp := Error{Msg: "Album name is required"}
+		ctx.JSON(resp)
 		return
 	}
+
+	albumPath := UploadsDir + "\\" + albumName
+	level.Info(h.logger).Log("msg", "checking album present", "path", albumPath)
+	if _, err := os.Stat(albumPath); os.IsExist(err) {
+		ctx.StatusCode(iris.StatusBadRequest)
+		resp := Error{Msg: "Album is present already"}
+		ctx.JSON(resp)
+		return
+	}
+
 	err := h.createFolder(albumName)
 	if err != nil {
 		level.Error(h.logger).Log("msg", "failed to create album", "err", err.Error())
 		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Failed to create album"})
+		resp := Error{Msg: "Failed to create album"}
+		ctx.JSON(resp)
+		return
 	}
 
+	loc := "api/album/v1/" + albumName
+	ctx.Header("Location", loc)
 	ctx.StatusCode(iris.StatusCreated)
-	ctx.JSON(iris.Map{"msg": "Album created successfully", "name": albumName})
+	resp := Create{Msg: "Album created successfully", Name: albumName, Url: loc}
+	ctx.JSON(resp)
 }
 
 //
@@ -65,23 +83,27 @@ func (h *RequestHandler) CreateAlbum(ctx iris.Context) {
 // @Accept  application/x-www-form-urlencoded
 // @Produce json
 // @Param  album path string true "album name"
-// @Success 200 {string} string "Album deleted successfully"
-// @Failure 400 {string} string "Album name is required"
-// @Failure 500 {string} string "Failed to delete album"
+// @Success 200 {object} Delete "Album deleted successfully"
+// @Failure 400 {object} Error "Album name is required"
+// @Failure 404 {object} Error "Album not found"
+// @Failure 500 {object} Error "Failed to delete album"
 // @Router /api/album/v1/{album} [delete]
 func (h *RequestHandler) DeleteAlbum(ctx iris.Context) {
 	albumName := ctx.Params().Get("album")
 	if albumName == "" {
 		ctx.StatusCode(iris.StatusBadRequest)
-		ctx.JSON(iris.Map{"msg": "Album name is required"})
+		resp := Error{Msg: "Album name is required"}
+		ctx.JSON(resp)
 		return
 	}
 
 	albumPath := UploadsDir + "\\" + albumName
+	level.Info(h.logger).Log("msg", "checking album present", "path", albumPath)
 	if _, err := os.Stat(albumPath); os.IsNotExist(err) {
 		level.Error(h.logger).Log("msg", "album not found", "err", err.Error())
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Album not found"})
+		ctx.StatusCode(iris.StatusNotFound)
+		resp := Error{Msg: "Album not found"}
+		ctx.JSON(resp)
 		return
 	}
 
@@ -89,10 +111,13 @@ func (h *RequestHandler) DeleteAlbum(ctx iris.Context) {
 	if err != nil {
 		level.Error(h.logger).Log("msg", "failed to delete album", "err", err.Error())
 		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Failed to delete album"})
+		resp := Error{Msg: "Failed to delete album"}
+		ctx.JSON(resp)
+		return
 	}
 	ctx.StatusCode(iris.StatusOK)
-	ctx.JSON(iris.Map{"msg": "Album deleted successfully", "name": albumName})
+	resp := Delete{Msg: "Album deleted successfully", Name: albumName}
+	ctx.JSON(resp)
 }
 
 //
@@ -102,9 +127,10 @@ func (h *RequestHandler) DeleteAlbum(ctx iris.Context) {
 // @Produce json
 // @Param  album formData string true "album name"
 // @Param  file formData file true "image file"
-// @Success 200 {string} string "Image uploaded successfully"
-// @Failure 400 {string} string "Album name is required"
-// @Failure 500 {string} string "Failed to upload image"
+// @Success 201 {object} Create "Image uploaded successfully"
+// @Failure 400 {object} Error "Album name is required"
+// @Failure 404 {object} Error "Album not found"
+// @Failure 500 {object} Error "Failed to upload image"
 // @Router /api/album/image/v1/ [post]
 func (h *RequestHandler) CreateImage(ctx iris.Context) {
 
@@ -113,23 +139,30 @@ func (h *RequestHandler) CreateImage(ctx iris.Context) {
 
 	albumName := ctx.FormValue("album")
 	if albumName == "" {
+
 		ctx.StatusCode(iris.StatusBadRequest)
-		ctx.JSON(iris.Map{"msg": "Album name is required"})
+		resp := Error{Msg: "Album name is required"}
+		ctx.JSON(resp)
 		return
 	}
 	albumPath := UploadsDir + "\\" + albumName
+	level.Info(h.logger).Log("msg", "checking album present", "path", albumPath)
 	if _, err := os.Stat(albumPath); os.IsNotExist(err) {
 		level.Error(h.logger).Log("msg", "album not found", "err", err.Error())
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Album not found"})
+
+		resp := Error{Msg: "Album not found"}
+		ctx.StatusCode(iris.StatusNotFound)
+		ctx.JSON(resp)
 		return
 	}
 
 	file, info, err := ctx.FormFile("file")
 	if err != nil {
 		level.Error(h.logger).Log("msg", "error while uploading file", "err", err.Error())
+
+		resp := Error{Msg: "Failed to upload image"}
 		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Failed to upload image"})
+		ctx.JSON(resp)
 		return
 	}
 
@@ -141,8 +174,9 @@ func (h *RequestHandler) CreateImage(ctx iris.Context) {
 	if err != nil {
 		level.Error(h.logger).Log("msg", "error while uploading file", "err", err.Error())
 
+		resp := Error{Msg: "Failed to upload image"}
 		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Failed to upload image"})
+		ctx.JSON(resp)
 		return
 	}
 	defer out.Close()
@@ -151,8 +185,9 @@ func (h *RequestHandler) CreateImage(ctx iris.Context) {
 	if err != nil {
 		level.Error(h.logger).Log("msg", "error while uploading file", "err", err.Error())
 
+		resp := Error{Msg: "Failed to upload image"}
 		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Failed to upload image"})
+		ctx.JSON(resp)
 		return
 	}
 
@@ -165,8 +200,11 @@ func (h *RequestHandler) CreateImage(ctx iris.Context) {
 		h.publish(KafkaTopic, key, value)
 	}
 
-	ctx.StatusCode(iris.StatusOK)
-	ctx.JSON(iris.Map{"msg": "Image uploaded successfully", "name": fname})
+	loc := "api/album/image/v1/" + albumName + "/" + fname
+	ctx.Header("Location", loc)
+	ctx.StatusCode(iris.StatusCreated)
+	resp := Create{Msg: "Image uploaded successfully", Name: fname, Url: loc}
+	ctx.JSON(resp)
 }
 
 //
@@ -176,31 +214,34 @@ func (h *RequestHandler) CreateImage(ctx iris.Context) {
 // @Produce json
 // @Param  album path string true "album name"
 // @Param  image path string true "image name"
-// @Success 200 {string} string "Image deleted successfully"
-// @Failure 400 {string} string "Album name is required"
-// @Failure 400 {string} string "Image name is required"
-// @Failure 500 {string} string "Failed to delete image"
-// @Failure 500 {string} string "Image not found"
+// @Success 200 {object} Delete "Image deleted successfully"
+// @Failure 400 {object} Error "Album name is required"
+// @Failure 400 {object} Error "Image name is required"
+// @Failure 404 {object} Error "Image not found"
+// @Failure 500 {object} Error "Failed to delete image"
 // @Router /api/album/image/v1/{album}/{image} [delete]
 func (h *RequestHandler) DeleteImage(ctx iris.Context) {
 	albumName := ctx.Params().Get("album")
 	if albumName == "" {
 		ctx.StatusCode(iris.StatusBadRequest)
-		ctx.JSON(iris.Map{"msg": "Album name is required"})
+		resp := Error{Msg: "Album name is required"}
+		ctx.JSON(resp)
 		return
 	}
 	imageName := ctx.Params().Get("image")
 	if imageName == "" {
 		ctx.StatusCode(iris.StatusBadRequest)
-		ctx.JSON(iris.Map{"msg": "Image name is required"})
+		resp := Error{Msg: "Image name is required"}
+		ctx.JSON(resp)
 		return
 	}
 
 	imagePath := UploadsDir + "\\" + albumName + "\\" + imageName
 	if _, err := os.Stat(imagePath); os.IsNotExist(err) {
 		level.Error(h.logger).Log("msg", "image not found", "err", err.Error())
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Image not found"})
+		ctx.StatusCode(iris.StatusNotFound)
+		resp := Error{Msg: "Image not found"}
+		ctx.JSON(resp)
 		return
 	}
 
@@ -208,7 +249,9 @@ func (h *RequestHandler) DeleteImage(ctx iris.Context) {
 	if err != nil {
 		level.Error(h.logger).Log("msg", "failed to delete image", "err", err.Error())
 		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Failed to delete image"})
+		resp := Error{Msg: "Failed to delete image"}
+		ctx.JSON(resp)
+		return
 	}
 
 	key := albumName + "-" + imageName
@@ -221,7 +264,8 @@ func (h *RequestHandler) DeleteImage(ctx iris.Context) {
 	}
 
 	ctx.StatusCode(iris.StatusOK)
-	ctx.JSON(iris.Map{"message": "Image deleted successfully", "name": imageName})
+	resp := Delete{Msg: "Image deleted successfully", Name: imageName}
+	ctx.JSON(resp)
 }
 
 //
@@ -230,27 +274,47 @@ func (h *RequestHandler) DeleteImage(ctx iris.Context) {
 // @Accept  application/x-www-form-urlencoded
 // @Produce json
 // @Param  album path string true "album name"
-// @Success 200 {object} array "[{"name":"", "url":""}]"
-// @Failure 400 {string} string "Album name is required"
-// @Failure 500 {string} string "Failed to get images"
+// @Success 200 {object} Get "[{"name":"", "url":""}]"
+// @Failure 400 {object} Error "Album name is required"
+// @Failure 404 {object} Error "Album not found"
+// @Failure 500 {object} Error "Failed to get images"
 // @Router /api/album/v1/{album} [get]
 func (h *RequestHandler) GetImages(ctx iris.Context) {
 	albumName := ctx.Params().Get("album")
 	if albumName == "" {
 		ctx.StatusCode(iris.StatusBadRequest)
-		ctx.JSON(iris.Map{"msg": "Album name is required"})
+		resp := Error{Msg: "Album name is required"}
+		ctx.JSON(resp)
 		return
 	}
 
-	level.Info(h.logger).Log("msg", "reading images from album", "name", albumName)
+	albumPath := UploadsDir + "\\" + albumName
+	level.Info(h.logger).Log("msg", "checking album present", "path", albumPath)
+	if _, err := os.Stat(albumPath); os.IsNotExist(err) {
+		level.Error(h.logger).Log("msg", "album not dound", "path", albumPath)
+
+		ctx.StatusCode(iris.StatusNotFound)
+		resp := Error{Msg: "Album not found"}
+		ctx.JSON(resp)
+		return
+	}
+	level.Info(h.logger).Log("msg", "reading images from album", "name", albumPath)
 	files, err := ioutil.ReadDir(UploadsDir + "\\" + albumName)
 	if err != nil {
 		level.Error(h.logger).Log("msg", "failed to get images", "err", err.Error())
 		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Failed to get images"})
+		resp := Error{Msg: "Failed to get images"}
+		ctx.JSON(resp)
+		return
 	}
 
 	level.Info(h.logger).Log("msg", "found images in album", "name", albumName, "count", len(files))
+	if len(files) == 0 {
+		ctx.StatusCode(iris.StatusOK)
+		resp := Get{Msg: "No images found", Data: nil}
+		ctx.JSON(resp)
+		return
+	}
 
 	type Image struct {
 		Name string `json:"name"`
@@ -263,7 +327,8 @@ func (h *RequestHandler) GetImages(ctx iris.Context) {
 	}
 
 	ctx.StatusCode(iris.StatusOK)
-	ctx.JSON(images)
+	resp := Get{Msg: "Found " + strconv.Itoa(len(images)) + " image(s)", Data: images}
+	ctx.JSON(resp)
 }
 
 //
@@ -273,30 +338,33 @@ func (h *RequestHandler) GetImages(ctx iris.Context) {
 // @Produce json
 // @Param  album path string true "album name"
 // @Param  image path string true "image name"
-// @Success 200 {file} file "Image"
-// @Failure 400 {string} string "Album name is required"
-// @Failure 400 {string} string "Image name is required"
-// @Failure 500 {string} string "Image not found"
+// @Success 200 {file} file "Image File"
+// @Failure 400 {object} Error "Album name is required"
+// @Failure 400 {object} Error "Image name is required"
+// @Failure 500 {object} Error "Image not found"
 // @Router /api/album/image/v1/{album}{image} [get]
 func (h *RequestHandler) GetImage(ctx iris.Context) {
 	albumName := ctx.Params().Get("album")
 	if albumName == "" {
 		ctx.StatusCode(iris.StatusBadRequest)
-		ctx.JSON(iris.Map{"msg": "Album name is required"})
+		resp := Error{Msg: "Album name is required"}
+		ctx.JSON(resp)
 		return
 	}
 	imageName := ctx.Params().Get("image")
 	if imageName == "" {
 		ctx.StatusCode(iris.StatusBadRequest)
-		ctx.JSON(iris.Map{"msg": "Image name is required"})
+		resp := Error{Msg: "Image name is required"}
+		ctx.JSON(resp)
 		return
 	}
 
 	imagePath := UploadsDir + "\\" + albumName + "\\" + imageName
 	fileInfo, err := os.Stat(imagePath)
 	if os.IsNotExist((err)) {
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(iris.Map{"msg": "Image not found"})
+		ctx.StatusCode(iris.StatusNotFound)
+		resp := Error{Msg: "Image not found"}
+		ctx.JSON(resp)
 		return
 	}
 	level.Info(h.logger).Log("msg", "returning file", "name", imagePath)

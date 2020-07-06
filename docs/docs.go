@@ -52,22 +52,28 @@ var doc = `{
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Image uploaded successfully",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Create"
                         }
                     },
                     "400": {
                         "description": "Album name is required",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Album not found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Error"
                         }
                     },
                     "500": {
                         "description": "Failed to upload image",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
                         }
                     }
                 }
@@ -103,19 +109,25 @@ var doc = `{
                     "200": {
                         "description": "Image deleted successfully",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Delete"
                         }
                     },
                     "400": {
                         "description": "Image name is required",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Image not found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Error"
                         }
                     },
                     "500": {
-                        "description": "Image not found",
+                        "description": "Failed to delete image",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
                         }
                     }
                 }
@@ -149,7 +161,7 @@ var doc = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Image",
+                        "description": "Image File",
                         "schema": {
                             "type": "file"
                         }
@@ -157,13 +169,13 @@ var doc = `{
                     "400": {
                         "description": "Image name is required",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
                         }
                     },
                     "500": {
                         "description": "Image not found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
                         }
                     }
                 }
@@ -189,22 +201,22 @@ var doc = `{
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Album created successfully",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Create"
                         }
                     },
                     "400": {
-                        "description": "Album name is required",
+                        "description": "Album is present already",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
                         }
                     },
                     "500": {
                         "description": "Failed to create album",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
                         }
                     }
                 }
@@ -233,19 +245,25 @@ var doc = `{
                     "200": {
                         "description": "[{\"name\":\"\", \"url\":\"\"}]",
                         "schema": {
-                            "type": "array"
+                            "$ref": "#/definitions/handler.Get"
                         }
                     },
                     "400": {
                         "description": "Album name is required",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Album not found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Error"
                         }
                     },
                     "500": {
                         "description": "Failed to get images",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
                         }
                     }
                 }
@@ -272,21 +290,73 @@ var doc = `{
                     "200": {
                         "description": "Album deleted successfully",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Delete"
                         }
                     },
                     "400": {
                         "description": "Album name is required",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Album not found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.Error"
                         }
                     },
                     "500": {
                         "description": "Failed to delete album",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handler.Error"
                         }
                     }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handler.Create": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.Delete": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.Error": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.Get": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object"
+                },
+                "msg": {
+                    "type": "string"
                 }
             }
         }

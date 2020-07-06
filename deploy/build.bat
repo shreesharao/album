@@ -1,1 +1,1 @@
-powershell  ".\build.ps1"
+powershell  ".\deploy\build.ps1"

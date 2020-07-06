@@ -2,6 +2,7 @@ package resources
 
 import (
 	"os"
+	"strings"
 
 	"github.com/Shopify/sarama"
 	"github.com/go-kit/kit/log"
@@ -47,17 +48,16 @@ func initializeProducer() {
 	kafkaConfig.Producer.Retry.Max = 3
 	kafkaConfig.Producer.Return.Successes = true
 
-	bootstrapServers := []string{"127.0.0.1"}
+	bootstrapServers := os.Getenv("bootstrapServers")
 	level.Info(Log).Log("bootstrap servers", bootstrapServers)
-	client, err := sarama.NewClient(bootstrapServers, kafkaConfig)
+	client, err := sarama.NewClient(strings.Split(bootstrapServers, ","), kafkaConfig)
 	if err != nil {
-		level.Error(Log).Log("msg", "failed to create kafka client", "err", err.Error())
 		return
 	}
 	level.Info(Log).Log("msg", "connection successfull")
 
 	KafkaProducer, err = sarama.NewSyncProducerFromClient(client)
 	if err != nil {
-		level.Error(Log).Log("msg", "failed to kafka producer", "err", err.Error())
+		return
 	}
 }

@@ -47,7 +47,7 @@ set-item env:GOARCH amd64
 go env
 
 LogInfo 'Publishing artifacts'
-go build ..\cmd\api\ 
+go build .\cmd\api\ 
 
 if($?  -eq $false)
 {
@@ -59,7 +59,7 @@ LogSuccess 'Publishing artifacts - completed'
 $repo = 'album'
 
 LogInfo 'Docker build'
-docker build -t ${repo}:latest -f ./Dockerfile .
+docker build -t ${repo}:latest -f .\deploy\Dockerfile .
 
 if($?  -eq $false)
 {

@@ -10,7 +10,7 @@ import (
 func setupRoutes(app *iris.Application, h *RequestHandler) {
 
 	config := &swagger.Config{
-		URL: "http://localhost:5000/swagger/swagger.json", //The url pointing to API definition
+		URL: "http://localhost:5000/api/album/swagger/swagger.json", //The url pointing to API definition
 	}
 
 	routeApis := app.Party("/api/album")
@@ -21,7 +21,8 @@ func setupRoutes(app *iris.Application, h *RequestHandler) {
 		routeApis.Delete("/image/v1/{album:string}/{image:string}", h.DeleteImage)
 		routeApis.Get("/v1/{album:string}", h.GetImages)
 		routeApis.Get("/image/v1/{album:string}/{image:string}", h.GetImage)
+		routeApis.Get("/swagger/{any:path}", swagger.CustomWrapHandler(config, swaggerFiles.Handler))
+		routeApis.Get("/swagger/swagger.json", h.ServeAPIDef)
 	}
-	app.Get("/swagger/{any:path}", swagger.CustomWrapHandler(config, swaggerFiles.Handler))
-	app.Get("/swagger/swagger.json", h.ServeAPIDef)
+
 }
